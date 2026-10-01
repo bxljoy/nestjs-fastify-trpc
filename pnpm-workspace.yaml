@@ -1,0 +1,7 @@
+packages:
+  - apps/*
+
+# Packaged native binaries work without these install-time fallback scripts.
+allowBuilds:
+  '@parcel/watcher': false
+  unrs-resolver: false

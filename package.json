@@ -1,0 +1,14 @@
+{
+  "name": "budget-review",
+  "private": true,
+  "packageManager": "pnpm@11.22.0",
+  "engines": { "node": ">=24.15.0 <25" },
+  "scripts": {
+    "dev": "pnpm --filter @budget-review/api dev",
+    "test:dev": "node scripts/test-dev-watch.cjs",
+    "test": "pnpm --filter @budget-review/api test",
+    "typecheck": "pnpm --filter @budget-review/api typecheck",
+    "build": "pnpm --filter @budget-review/api build",
+    "start": "pnpm --filter @budget-review/api start"
+  }
+}
