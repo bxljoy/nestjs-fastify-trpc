@@ -2,7 +2,7 @@
 
 An independent, AI-assisted learning project for NestJS + Fastify and, in later lessons, tRPC/Zod, Prisma/PostgreSQL, and React. It uses a fictional campaign recommendation → customer decision → pending execution workflow to explore the stack.
 
-## Current scope: Lessons 01 and 02A
+## Current scope: Lessons 01, 02A, and 02B
 
 The NestJS/Fastify foundation and a cross-module dependency-injection exercise are implemented:
 
@@ -10,6 +10,8 @@ The NestJS/Fastify foundation and a cross-module dependency-injection exercise a
 - `GET /hello` combines the health status with a greeting from a separate service.
 
 Lesson 02A adds local PostgreSQL, a Campaign schema/migration, and a Nest-managed Prisma client verified by database integration tests. PrismaModule is deliberately not imported by AppModule yet: Health and Hello do not require a database. There is no campaign HTTP API, frontend, tRPC API, recommendation generation, or execution processor yet.
+
+Lesson 02B adds CampaignsModule and CampaignsService for validated, bounded campaign listing with stable ordering. It is exercised by database tests only, not imported into AppModule. There are 20 database integration cases and six ordinary HTTP/DI cases.
 
 Local learning use only; not production-ready. The server listens on `127.0.0.1:3000`, not the public network.
 
@@ -124,6 +126,8 @@ apps/api/prisma/migrations/                Versioned SQL history
 apps/api/src/prisma/                       PrismaModule and client lifecycle
 apps/api/src/generated/prisma/             Ignored generated client; regenerate, don't edit
 apps/api/test/campaign.persistence.integration-spec.ts
+apps/api/src/campaigns/                    Injectable campaign-listing capability
+apps/api/test/campaigns.service.integration-spec.ts
 ```
 
 ## Local database lesson
@@ -144,9 +148,9 @@ pnpm test:db
 - `db:migrate` uses `migrate dev`; `test:db` uses `migrate deploy`. Neither script automatically resets a database. Stop and investigate any reset/drift prompt.
 - `db:generate` needs the configuration URL, but not a running database. Run it after schema changes and after installing on a fresh checkout, before typechecking/building the generated-client imports.
 - Stop only these services with `pnpm db:stop` and `pnpm db:test:stop`. Do not use `docker compose down -v` unless you deliberately intend to delete development data.
-- No campaign endpoint or seed dataset is added in this slice. The integration tests create their own short-lived example rows.
+- No campaign endpoint or seed dataset is added in this slice. The integration tests create their own short-lived example rows. Listing tests require exclusive use of the disposable test database and fail on unexpected existing rows; do not run multiple test:db processes concurrently.
 
-Start the explanations at [Lesson 01](docs/lessons/01-nestjs-fastify-foundation.md) and [Lesson 02A](docs/lessons/02a-prisma-postgresql.md).
+Start the explanations at [Lesson 01](docs/lessons/01-nestjs-fastify-foundation.md), [Lesson 02A](docs/lessons/02a-prisma-postgresql.md), and [Lesson 02B](docs/lessons/02b-campaigns-service.md).
 
 - [Approved V1 design](docs/superpowers/specs/2026-09-24-budget-review-v1-design.md)
 - [Lesson 01 implementation plan](docs/superpowers/plans/2026-09-24-budget-review-lesson-01.md)

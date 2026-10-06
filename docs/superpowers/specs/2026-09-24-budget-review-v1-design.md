@@ -1,6 +1,6 @@
 # Budget Review — V1 design
 
-Status: Approved by the user on 2026-09-24. Lesson 01 foundation and Lesson 02A Campaign persistence implemented. Campaign services, seed/performance data, API integration, and remaining V1 capabilities are not implemented.
+Status: Approved by the user on 2026-09-24. Lesson 01 foundation, Lesson 02A Campaign persistence, and Lesson 02B bounded CampaignsService listing implemented. Seed/performance data, API integration, and remaining V1 capabilities are not implemented.
 
 ## 1. Purpose and learning agreement
 
