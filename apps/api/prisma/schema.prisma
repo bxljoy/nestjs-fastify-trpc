@@ -1,0 +1,23 @@
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  moduleFormat           = "cjs"
+  generatedFileExtension = "ts"
+  importFileExtension    = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Currency {
+  EUR
+}
+
+model Campaign {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String   @db.VarChar(200)
+  dailyBudgetMinor Int
+  currency         Currency @default(EUR)
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+}

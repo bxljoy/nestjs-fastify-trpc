@@ -8,12 +8,17 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "db:generate": "node --env-file=.env node_modules/prisma/build/index.js generate",
+    "db:migrate": "node --env-file=.env node_modules/prisma/build/index.js migrate dev",
+    "test:db": "node scripts/test-database.cjs"
   },
   "dependencies": {
     "@nestjs/common": "12.1.0",
     "@nestjs/core": "12.1.0",
     "@nestjs/platform-fastify": "12.1.0",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"
   },
@@ -23,6 +28,7 @@
     "@types/jest": "30.0.0",
     "@types/node": "24.13.6",
     "jest": "30.5.2",
+    "prisma": "7.10.0",
     "ts-jest": "29.4.12",
     "typescript": "5.9.3"
   }

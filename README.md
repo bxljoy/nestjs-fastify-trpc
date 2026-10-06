@@ -2,14 +2,14 @@
 
 An independent, AI-assisted learning project for NestJS + Fastify and, in later lessons, tRPC/Zod, Prisma/PostgreSQL, and React. It uses a fictional campaign recommendation → customer decision → pending execution workflow to explore the stack.
 
-## Current scope: Lesson 01
+## Current scope: Lessons 01 and 02A
 
 The NestJS/Fastify foundation and a cross-module dependency-injection exercise are implemented:
 
 - `GET /health` returns `{"status":"ok"}`. This is **liveness**, not a database or external-service readiness check.
 - `GET /hello` combines the health status with a greeting from a separate service.
 
-There is no database, frontend, tRPC API, recommendation generation, or execution processor yet.
+Lesson 02A adds local PostgreSQL, a Campaign schema/migration, and a Nest-managed Prisma client verified by database integration tests. PrismaModule is deliberately not imported by AppModule yet: Health and Hello do not require a database. There is no campaign HTTP API, frontend, tRPC API, recommendation generation, or execution processor yet.
 
 Local learning use only; not production-ready. The server listens on `127.0.0.1:3000`, not the public network.
 
@@ -35,6 +35,9 @@ From the project root:
 ```bash
 nvm use 24
 pnpm install --frozen-lockfile
+# First checkout only: copy the public local-demo template, without overwriting an existing .env.
+cp -n apps/api/.env.example apps/api/.env
+pnpm db:generate
 pnpm dev
 ```
 
@@ -48,6 +51,8 @@ From the project root:
 
 ```bash
 pnpm install --frozen-lockfile
+cp -n apps/api/.env.example apps/api/.env
+pnpm db:generate
 pnpm test
 pnpm typecheck
 pnpm build
@@ -72,14 +77,20 @@ Use Ctrl+C to stop the server. In this compiled-code workflow, run `pnpm build` 
 | `pnpm build` | Compile source only into `apps/api/dist/` |
 | `pnpm start` | Run the previously compiled application |
 | `pnpm --filter @budget-review/api test --detectOpenHandles` | Check test teardown without forcing Jest to exit |
-| `pnpm audit` | Check known dependency advisories |
+| `pnpm audit` | Check known dependency advisories; see the current [triage](docs/dependency-audit.md) |
+| `pnpm db:generate` | Generate the typed Prisma client; does not create tables |
+| `pnpm db:up` / `pnpm db:stop` | Start/stop the local development PostgreSQL service |
+| `pnpm db:migrate` | Generate/apply development migrations; inspect prompts and SQL |
+| `pnpm db:test:up` / `pnpm db:test:stop` | Start/stop the separate disposable test PostgreSQL service |
+| `pnpm test:db` | Apply reviewed migrations to the test DB and run integration tests |
 
 ### Tooling notes
 
 - NestJS packages are pinned to 12.1.0. The backend compiles to CommonJS; Nest 12 exposes ES modules. Node supports this synchronous interoperability, while Jest additionally needs its **test-only** `--experimental-vm-modules` flag and Node >=24.9. The project minimum is higher—24.15.0—because the locked Nest CLI schematics and Angular DevKit packages require it. Expect Node's VM Modules experimental warning during tests; it is not suppressed. Production startup does not use that flag.
 - TypeScript is pinned to 5.9.3 and ts-jest to 29.4.12. Choosing every package's latest major independently would not give a compatible test toolchain.
 - `pnpm-workspace.yaml` explicitly denies install scripts for `@parcel/watcher` and `unrs-resolver`; their packaged native binaries worked on the verified macOS arm64 host. Other platforms must verify their own prebuilt binary support rather than blanket-approving scripts.
-- Initial installation reported a deprecated transitive `glob@10.5.0`. The native audit reported no known vulnerabilities at verification time; that is not a guarantee against unknown vulnerabilities.
+- Prisma CLI/client/adapter are pinned to 7.10.0. Only its reviewed engine download and Node-version install check are allowed, in addition to the explicitly denied fallback scripts above. Prisma 8 prereleases are not used.
+- The current audit reports **two high and two moderate transitive tooling advisories**. See [dependency audit and exposure limits](docs/dependency-audit.md); do not assume a green application test suite means dependencies are vulnerability-free. A deprecated transitive `glob@10.5.0` warning also remains.
 
 ## Structure
 
@@ -103,7 +114,39 @@ apps/api/
     hello.e2e-spec.ts           Combined response through the real application
 ```
 
-Start the explanation at [Lesson 01](docs/lessons/01-nestjs-fastify-foundation.md).
+Additional persistence files:
+
+```text
+compose.yaml                              Separate dev/test PostgreSQL services
+apps/api/prisma.config.ts                 Prisma CLI configuration
+apps/api/prisma/schema.prisma             Model and generated-client configuration
+apps/api/prisma/migrations/                Versioned SQL history
+apps/api/src/prisma/                       PrismaModule and client lifecycle
+apps/api/src/generated/prisma/             Ignored generated client; regenerate, don't edit
+apps/api/test/campaign.persistence.integration-spec.ts
+```
+
+## Local database lesson
+
+Requires Docker with Compose. All passwords below are **public demo-only values**, never production credentials.
+
+```bash
+pnpm db:up
+pnpm db:migrate
+pnpm db:test:up
+pnpm test:db
+```
+
+- Development: `127.0.0.1:55432`, database/user `budget_review_dev` / `budget_review`, password `local_dev_only`. Data lives in a named volume and survives stop/start.
+- Tests: `127.0.0.1:55433`, database/user `budget_review_test`, password `local_test_only`. Uses disposable tmpfs storage and loses data when stopped; `test:db` reapplies migration files when needed.
+- The integration runner fixes its own test URL and does not load the development `.env` or use an inherited `DATABASE_URL`. It deletes only rows whose UUIDs the test created.
+- Development CLI commands use `apps/api/.env`. An already exported `DATABASE_URL` takes precedence over Node's env file, so check the CLI's displayed database/host before applying a migration. Do not point `db:migrate` at shared or production databases.
+- `db:migrate` uses `migrate dev`; `test:db` uses `migrate deploy`. Neither script automatically resets a database. Stop and investigate any reset/drift prompt.
+- `db:generate` needs the configuration URL, but not a running database. Run it after schema changes and after installing on a fresh checkout, before typechecking/building the generated-client imports.
+- Stop only these services with `pnpm db:stop` and `pnpm db:test:stop`. Do not use `docker compose down -v` unless you deliberately intend to delete development data.
+- No campaign endpoint or seed dataset is added in this slice. The integration tests create their own short-lived example rows.
+
+Start the explanations at [Lesson 01](docs/lessons/01-nestjs-fastify-foundation.md) and [Lesson 02A](docs/lessons/02a-prisma-postgresql.md).
 
 - [Approved V1 design](docs/superpowers/specs/2026-09-24-budget-review-v1-design.md)
 - [Lesson 01 implementation plan](docs/superpowers/plans/2026-09-24-budget-review-lesson-01.md)

@@ -1,0 +1,35 @@
+name: budget-review
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: budget_review
+      POSTGRES_PASSWORD: local_dev_only
+      POSTGRES_DB: budget_review_dev
+    ports:
+      - '127.0.0.1:55432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U budget_review -d budget_review_dev']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  postgres-test:
+    image: postgres:17-bookworm
+    profiles: ['test']
+    environment:
+      POSTGRES_USER: budget_review_test
+      POSTGRES_PASSWORD: local_test_only
+      POSTGRES_DB: budget_review_test
+    ports:
+      - '127.0.0.1:55433:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U budget_review_test -d budget_review_test']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  postgres_data:

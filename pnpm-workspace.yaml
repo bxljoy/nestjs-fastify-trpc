@@ -1,7 +1,10 @@
 packages:
   - apps/*
 
-# Packaged native binaries work without these install-time fallback scripts.
 allowBuilds:
+  # Packaged native binaries work without these fallback scripts.
   '@parcel/watcher': false
   unrs-resolver: false
+  # Prisma migrations need the platform schema engine; CLI preinstall checks Node.
+  '@prisma/engines': true
+  prisma: true

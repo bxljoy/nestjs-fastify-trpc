@@ -10,7 +10,9 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-24-budget-review-v1-design.md`.
 
-Status: Awaiting user review; no dependencies installed, containers created, or code implemented for this lesson.
+Status: Implemented, reviewed, and taught on `feat/lesson-02a-persistence`. Fresh read-only review found no issues and accepted the bounded dependency exposure assessment with its follow-up deadline.
+
+Execution notes: PostgreSQL 17.11 verified; Prisma CLI/client/adapter 7.10.0; CommonJS generation and compiled queries verified. The negative-budget test now checks SQLSTATE 23514 and the named constraint instead of accepting any error. The test runner uses --watchman=false. Ordinary six tests pass with both database services stopped; two opt-in PostgreSQL tests pass and clean up only their own rows. The implementation-time dependency audit had three transitive findings; the publication recheck has four (including a Jest-tooling advisory); see `docs/dependency-audit.md` rather than interpreting this lesson as audit-clean.
 
 ## Global Constraints
 
@@ -91,8 +93,8 @@ Sources checked:
 
 ### Step 1: Database and tooling setup
 
-- [ ] Verify current tests/typecheck/build before changes. Inspect free ports; if occupied, ask before changing the declared connections or stopping anything.
-- [ ] Add compose.yaml:
+- [x] Verify current tests/typecheck/build before changes. Inspect free ports; if occupied, ask before changing the declared connections or stopping anything.
+- [x] Add compose.yaml:
 
 ```yaml
 name: budget-review
@@ -134,7 +136,7 @@ volumes:
 
 These are explicitly public local-demo credentials, not reusable real credentials. Verify the pulled PostgreSQL 17 image version/digest and record it. The development volume survives stop/start; test storage is intentionally disposable. Avoid `down -v`.
 
-- [ ] Add pinned packages, inspecting policy warnings before executing dependency scripts:
+- [x] Add pinned packages, inspecting policy warnings before executing dependency scripts:
 
 ```bash
 pnpm --filter @budget-review/api add --save-exact @prisma/client@7.10.0 @prisma/adapter-pg@7.10.0
@@ -143,13 +145,13 @@ pnpm --filter @budget-review/api add -D --save-exact prisma@7.10.0
 
 The adapter already depends on pg; do not add a direct pg dependency unless source code imports it. Inspect Prisma's pending preinstall/postinstall source and choose explicit minimal policy entries; record the reasoning rather than allowing all builds. Stop if compatibility or supply-chain policy cannot be satisfied safely.
 
-- [ ] Add `apps/api/.env.example` and create `.env` from it only if absent:
+- [x] Add `apps/api/.env.example` and create `.env` from it only if absent:
 
 ```dotenv
 DATABASE_URL=postgresql://budget_review:local_dev_only@127.0.0.1:55432/budget_review_dev
 ```
 
-- [ ] Add `apps/api/prisma.config.ts`:
+- [x] Add `apps/api/prisma.config.ts`:
 
 ```typescript
 import { defineConfig, env } from 'prisma/config';
@@ -163,7 +165,7 @@ export default defineConfig({
 
 CLI scripts use Node's explicit --env-file=.env option, with the API as cwd. Runtime Prisma does not magically load this CLI config or .env. The integration runner supplies its own DATABASE_URL and does not load the development .env.
 
-- [ ] Add schema.prisma:
+- [x] Add schema.prisma:
 
 ```prisma
 generator client {
@@ -193,7 +195,7 @@ model Campaign {
 
 Use the explicit empty generated import extension to match the current CJS source transform and emitted files. Verify with actual tests/build, not assumptions. PostgreSQL Int bounds the budget to a signed 32-bit integer; add the nonnegative constraint below. Explain EUR 100 = 10000 and why IEEE-754 decimal arithmetic is avoided.
 
-- [ ] Add generated directory to `.gitignore`. Add API scripts:
+- [x] Add generated directory to `.gitignore`. Add API scripts:
 
 ```json
 {
@@ -218,7 +220,7 @@ Do not auto-start Docker inside pnpm test or the application. Do not add implici
 
 ### Step 2: Write the failing database test
 
-- [ ] Add the opt-in configuration:
+- [x] Add the opt-in configuration:
 
 ```javascript
 // apps/api/jest.integration.config.cjs
@@ -230,7 +232,7 @@ module.exports = {
 
 Verify the existing default patterns do not discover `.integration-spec.ts`. Generated client generation is a setup prerequisite, not a database migration.
 
-- [ ] Write the test before adding the Nest provider/module:
+- [x] Write the test before adding the Nest provider/module:
 
 ```typescript
 import 'reflect-metadata';
@@ -288,7 +290,7 @@ No table-wide deletion. The test chooses its own IDs before inserts and cleans u
 
 ### Step 3: Wire Prisma into a Nest module
 
-- [ ] Generate the client, then create the minimal PrismaService:
+- [x] Generate the client, then create the minimal PrismaService:
 
 ```typescript
 import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common';
@@ -327,7 +329,7 @@ export class PrismaModule {}
 
 Do not use @Global or add this module to AppModule. Loading the exported class in some file is not the same as importing the Nest module into the graph.
 
-- [ ] Start only the new Compose services with the declared commands. Before applying the schema on a fresh test DB, run the integration Jest command with the test URL and observe the missing-Campaign-table error. A missing generated import is only an intermediate setup failure, not the intended persistence RED evidence. Run from the root:
+- [x] Start only the new Compose services with the declared commands. Before applying the schema on a fresh test DB, run the integration Jest command with the test URL and observe the missing-Campaign-table error. A missing generated import is only an intermediate setup failure, not the intended persistence RED evidence. Run from the root:
 
 ```bash
 DATABASE_URL='postgresql://budget_review_test:local_test_only@127.0.0.1:55433/budget_review_test' pnpm --filter @budget-review/api exec node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.integration.config.cjs --runInBand
@@ -337,7 +339,7 @@ Expected on the fresh unmigrated test database: tests fail because the Campaign 
 
 ### Step 4: Generate and apply a reviewed migration
 
-- [ ] Generate the development migration without applying it:
+- [x] Generate the development migration without applying it:
 
 ```bash
 pnpm db:migrate --name init_campaign --create-only
@@ -345,7 +347,7 @@ pnpm db:migrate --name init_campaign --create-only
 
 Confirm forwarded CLI arguments. Inspect the generated SQL before applying. Stop if Prisma requests a reset or reports drift in an existing database; never consent automatically.
 
-- [ ] Add this statement to the newly generated migration before applying it anywhere:
+- [x] Add this statement to the newly generated migration before applying it anywhere:
 
 ```sql
 ALTER TABLE "Campaign"
@@ -355,9 +357,9 @@ CHECK ("dailyBudgetMinor" >= 0);
 
 Explain that Prisma's model captures much of the schema, but custom database constraints sometimes belong in migration SQL. Never edit an already-applied migration to change deployed history.
 
-- [ ] Apply the development migration via pnpm db:migrate. Test migrations use migrate deploy, which applies reviewed migrations rather than generating or resetting anything.
+- [x] Apply the development migration via pnpm db:migrate. Test migrations use migrate deploy, which applies reviewed migrations rather than generating or resetting anything.
 
-- [ ] Add `apps/api/scripts/test-database.cjs`:
+- [x] Add `apps/api/scripts/test-database.cjs`:
 
 ```javascript
 const { spawnSync } = require('node:child_process');
@@ -386,15 +388,15 @@ run([
 
 The literal connection is limited to the local demo test instance. Production credentials are not accepted by this runner. Do not silently fall back to DATABASE_URL or the development port.
 
-- [ ] Run `pnpm test:db`. Expected: create/read and constraint checks pass; process exits without leaked pools. Rerun it to prove rows do not collide across runs. Verify both tests really ran.
-- [ ] Verify regression sensitivity in the disposable test database only: dropping the check constraint should make the negative test fail, and restoring the same constraint should return it to green. Use explicit SQL targeting only budget_review_test/55433; do not alter development data or migration history. If safe test-only targeting cannot be established, stop rather than broadening cleanup.
+- [x] Run `pnpm test:db`. Expected: create/read and constraint checks pass; process exits without leaked pools. Rerun it to prove rows do not collide across runs. Verify both tests really ran.
+- [x] Verify regression sensitivity in the disposable test database only: dropping the check constraint should make the negative test fail, and restoring the same constraint should return it to green. Use explicit SQL targeting only budget_review_test/55433; do not alter development data or migration history. If safe test-only targeting cannot be established, stop rather than broadening cleanup.
 
 ### Step 5: Verify the application and teach
 
-- [ ] Run frozen install, generate, normal Jest tests, typecheck, build, integration tests, and package-manager audit. Compare generated CJS client output and ensure there are no imports with unresolved .ts extensions in compiled runtime files.
-- [ ] Confirm the ordinary six existing tests run without connecting to PostgreSQL and the integration tests are selected only by their dedicated config. Do not skip or delete the learner's Hello test.
-- [ ] Explain generated files are regenerated after schema changes and after fresh checkout. Document that build/typecheck require client generation even when running the HTTP app without a database. Do not hand-edit generated Prisma files.
-- [ ] Write README commands and `docs/lessons/02a-prisma-postgresql.md` covering:
+- [x] Run frozen install, generate, normal Jest tests, typecheck, build, integration tests, and package-manager audit. Compare generated CJS client output and ensure there are no imports with unresolved .ts extensions in compiled runtime files.
+- [x] Confirm the ordinary six existing tests run without connecting to PostgreSQL and the integration tests are selected only by their dedicated config. Do not skip or delete the learner's Hello test.
+- [x] Explain generated files are regenerated after schema changes and after fresh checkout. Document that build/typecheck require client generation even when running the HTTP app without a database. Do not hand-edit generated Prisma files.
+- [x] Write README commands and `docs/lessons/02a-prisma-postgresql.md` covering:
   1. PostgreSQL versus Prisma versus generated PrismaClient.
   2. schema.prisma versus migration SQL versus the actual database schema.
   3. Why generating types does not create a table.
@@ -405,8 +407,8 @@ The literal connection is limited to the local demo test instance. Production cr
   8. Module integration testing against a real, separate database; why SQLite/mocks would miss PostgreSQL behavior.
   9. Why AppModule is deliberately unchanged until a real database consumer arrives.
   10. Where later transactions will matter: approval plus execution intent, not wrapping every read by habit.
-- [ ] Request a bounded read-only review, address substantive findings with tests, and explain the result to the learner. Leave services stopped with `db:stop` / `db:test:stop` unless the learner requests keeping them running; do not remove the development volume.
-- [ ] Pause. Do not add seed performance, CampaignsService, HTTP endpoints, tRPC, or the frontend until the learner is ready for the next slice.
+- [x] Request a bounded read-only review, address substantive findings with tests, and explain the result to the learner. Leave services stopped with `db:stop` / `db:test:stop` unless the learner requests keeping them running; do not remove the development volume.
+- [x] Pause. Do not add seed performance, CampaignsService, HTTP endpoints, tRPC, or the frontend until the learner is ready for the next slice.
 
 ## Self-review and coverage
 

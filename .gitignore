@@ -6,3 +6,6 @@ coverage/
 !.env.example
 .DS_Store
 .superpowers/
+
+# Generated from the versioned Prisma schema.
+apps/api/src/generated/prisma/

@@ -2,13 +2,22 @@
   "name": "budget-review",
   "private": true,
   "packageManager": "pnpm@11.22.0",
-  "engines": { "node": ">=24.15.0 <25" },
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
   "scripts": {
     "dev": "pnpm --filter @budget-review/api dev",
     "test:dev": "node scripts/test-dev-watch.cjs",
     "test": "pnpm --filter @budget-review/api test",
     "typecheck": "pnpm --filter @budget-review/api typecheck",
     "build": "pnpm --filter @budget-review/api build",
-    "start": "pnpm --filter @budget-review/api start"
+    "start": "pnpm --filter @budget-review/api start",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:stop": "docker compose stop postgres",
+    "db:test:up": "docker compose --profile test up -d --wait postgres-test",
+    "db:test:stop": "docker compose --profile test stop postgres-test",
+    "db:generate": "pnpm --filter @budget-review/api db:generate",
+    "db:migrate": "pnpm --filter @budget-review/api db:migrate",
+    "test:db": "pnpm --filter @budget-review/api test:db"
   }
 }
